@@ -1,0 +1,137 @@
+from tkinter import *
+from selenium import webdriver # to control browser operations
+import webbrowser
+import speech_recognition as sr
+import pyttsx3
+import pywhatkit
+import pyaudio
+import datetime
+import wikipedia
+import pyjokes
+import json
+import sys
+import wolframalpha # to calculate strings into formula
+from urllib.request import urlopen
+
+listener = sr.Recognizer()
+
+engine = pyttsx3.init()
+voices = engine.getProperty("voices")
+engine.setProperty('voice', voices[1].id)
+
+stop_program = False
+
+def engine_talk(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def user_commands():
+    command = ""
+    try:
+        with sr.Microphone() as source:
+            print("Start Speaking!!")
+            listener.adjust_for_ambient_noise(source)
+            listener.dynamic_energy_threshold = 3000
+            voice = listener.listen(source, timeout=2)
+            command = listener.recognize_google(voice)
+            command = command.lower()
+            if 'alexa' in command:
+                command = command.replace('alexa', '')
+                print(command)
+    except:
+        pass
+    return command
+
+def run_alexa():
+    global stop_program # Declare the variable as global to modify it within the function
+    if not stop_program:
+        command = user_commands()
+        if 'play' in command or 'song' in command:
+            song = command.replace('play', '')
+            engine_talk('Playing' + song)
+            pywhatkit.playonyt(song)
+        elif 'what is your name' in command:
+            engine_talk('my name is alexa the great')
+        elif 'wikipedia' in command:
+            options = webdriver.ChromeOptions()
+            options.add_experimental_option("detach", True)
+            driver = webdriver.Chrome(options=options)
+            driver.implicitly_wait(1)
+            driver.maximize_window()
+            indx = command.lower().split().index('wikipedia')
+            query = command.split()[indx + 1:]
+            driver.get("https://en.wikipedia.org/wiki/" + '_'.join(query))
+        elif 'time' in command:
+            time = datetime.datetime.now().strftime('%I:%M %p')
+            engine_talk('The current time is' + time)  
+        elif 'open google' in command:
+            webbrowser.open("google.com")
+        elif "calculate" in command.lower():
+            # write your wolframalpha app_id here
+            app_id = "AAUR8A-RVA8T3J976" 
+            client = wolframalpha.Client(app_id)
+            indx = command.lower().split().index('calculate')
+            query = command.split()[indx + 1:]
+            res = client.query(' '.join(query))
+            answer = next(res.results).text
+            print(answer)
+            engine_talk("The answer is " + answer)
+        elif 'joke' in command:
+            engine_talk(pyjokes.get_joke())
+        elif 'how are you' in command:
+            engine_talk("I am fine, Thank you")
+            engine_talk("How are you")
+        elif 'fine' in command or "good" in command:
+            engine_talk("It's good to know that your fine")
+        elif 'who made you' in command or 'who created you' in command: 
+            engine_talk("I have been created by Shivain")
+        elif 'news' in command: 
+            try: 
+                jsonObj = urlopen('https://newsapi.org/v1/articles?source=the-times-of-india&sortBy=top&apiKey=9357c88b88484b138fababf1c6a57631')
+                data = json.load(jsonObj)
+                i = 1  
+                engine_talk('here are some top news from the times of india')
+                #print('''=============== TIMES OF INDIA ============'''+ '\n')   
+                for item in data['articles']:  
+                    #print(str(i) + '. ' + item['title'] + '\n')
+                    #print(item['description'] + '\n')
+                    engine_talk(str(i) + '. ' + item['title'] + '\n')
+                    i += 1
+            except Exception as e:
+                print(str(e))
+        elif 'stop' in command:
+            stop_program = True
+            engine_talk('Stopping the program')
+            root.destroy() # Close the Tkinter window
+        else:
+            engine_talk('I could not hear you properly')
+            root.after(50, run_alexa) # Schedule the function to be called after 100 milliseconds
+        
+            
+
+def main():
+    run_alexa()
+
+root = Tk()
+root.title("Shiven's Alexa")
+#to add a window or canvas
+canvas1 = Canvas(root, width=600, height=300, bg="light yellow")
+canvas1.pack()
+
+#to add a button
+button1 = Button(root, text='Start', command=main, bg='light blue', font=("arial", 20))
+canvas1.create_window(250, 200, window=button1)
+
+#button2 = Button(root, text='Stop', bg='light blue', font=("arial", 20))
+#canvas1.create_window(350, 200, window=button2)
+
+#to add the image
+img = PhotoImage(file="C:/Users/MSI/Downloads/Alexa3.png")
+canvas1.create_image(2,0, anchor=NW, image=img)
+
+#to add a label
+label2 = Button (root, text='say STOP to close Alexa' , bg='light blue', font=("arial", 14))
+canvas1.create_window(250, 270, window=label2)
+
+root.mainloop()
+
